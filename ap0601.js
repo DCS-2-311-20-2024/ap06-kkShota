@@ -1,6 +1,6 @@
 //
 // 応用プログラミング 第6回 課題1 (ap0601)
-// G384002023 拓殖太郎
+// G4M3042024 片野翔太
 //
 "use strict"; // 厳格モード
 
@@ -41,16 +41,17 @@ function init() {
   const renderer = new THREE.WebGLRenderer();
   renderer.setSize(canvasWidth, canvasHeight);
   renderer.setClearColor(0x406080);
-  // renderer.domElement.style.position = "absolute";
-  // renderer.domElement.style.top = nameHeight;
+  renderer.domElement.style.position = "absolute";
+  renderer.domElement.style.top = nameHeight;
   document.getElementById("canvas").appendChild(renderer.domElement);
-
+  renderer.shadowMap.enabled = true; //追加箇所　影の設定
+  
   // CSSRenderer の追加
-  // const cssRenderer = new CSS3DRenderer();
-  // cssRenderer.setSize(canvasWidth, canvasHeight);
-  // cssRenderer.domElement.style.position = "absolute";
-  // cssRenderer.domElement.style.top = nameHeight;
-  // document.getElementById("canvas").appendChild(cssRenderer.domElement);
+  const cssRenderer = new CSS3DRenderer();
+  cssRenderer.setSize(canvasWidth, canvasHeight);
+  cssRenderer.domElement.style.position = "absolute";
+  cssRenderer.domElement.style.top = nameHeight;
+  document.getElementById("canvas").appendChild(cssRenderer.domElement);
 
   // カメラの設定
   const camera = new THREE.PerspectiveCamera(
@@ -66,10 +67,9 @@ function init() {
   const dirLight = new THREE.DirectionalLight(0xffffff, 3);
   dirLight.position.set(20, 35, 10);
   scene.add(dirLight);
-
+  dirLight.castShadow = true; //追加箇所　影の追加
   const ambLight = new THREE.AmbientLight(0x404040, 20);
   scene.add(ambLight);
-
  
   // CSSRenderer で表示する iframe要素を作る
   const iframe = document.createElement("iframe");
@@ -77,56 +77,69 @@ function init() {
   iframe.style.height = "360px";
   iframe.style.border = "0px";
   iframe.src = "https://feng.takushoku-u.ac.jp/course/cs/";
-
-
-
-
-
-
+  const webPage = new CSS3DObject(iframe); //追加箇所
+  webPage.scale.x *= (dpy.W - dpy.E)/640; //追加箇所
+  webPage.scale.y *= (dpy.H - dpy.E)/360; //追加箇所
+  webPage.position.set(0, 0, dpy.D/2); //追加箇所
+  scene.add(webPage); //追加箇所
 
   // カメラ制御
-  const orbitControls = new OrbitControls(camera, renderer.domElement);
+  const orbitControls = new OrbitControls(camera, cssRenderer.domElement); //変更箇所
   orbitControls.enableDumping = true;
-
+  orbitControls.minAzimuthAngle = -Math.PI/2;
+  orbitControls.maxAzimuthAngle = Math.PI/2;
   // ディスプレイ
   const display = new THREE.Group();
   {
     // 表示部
     const silverMaterial = new THREE.MeshPhongMaterial({color: "silver"});
+    const blackMaterial = new THREE.MeshPhongMaterial({color: "black"});;//空欄箇所
     const face = new THREE.Mesh(
       new THREE.BoxGeometry(dpy.W, dpy.H, dpy.D),
-      silverMaterial
+      [silverMaterial, silverMaterial, silverMaterial, //空欄箇所
+        silverMaterial, blackMaterial, silverMaterial] //空欄箇所
     );
     display.add(face);
     // スタンド台
     const standBase = new THREE.Mesh(
-      
-      
+      new THREE.BoxGeometry(std.W, std.T, std.D), //空欄箇所
+      silverMaterial
     )
-    
-    //display.add(standBase);    
+    standBase.position.y = -(dpy.H/4+std.H); //空欄箇所
+    display.add(standBase);    //コメントアウト箇所
     // スタンド脚
     const theta = Math.PI/8;
     const standBack = new THREE.Mesh(
+      new THREE.BoxGeometry( //空欄箇所
+        std.W , //空欄箇所
+        std.H/Math.cos(theta) ,//空欄箇所
+        std.T), //空欄箇所
+        silverMaterial //空欄箇所
+      )
+      standBack.rotation.x = theta;
+      standBack.position.set(
+        0, 
+        -(dpy.H/4+std.H/2), //空欄箇所
+        -(std.H * Math.tan(theta))/2); //空欄箇所
+      display.add(standBack); //コメントアウト箇所
       
-      
-      
-      
-      
-    );
-    
-
-    
-
-
-
-    //display.add(standBack);
-
     // 影の設定
-  }
+  
+  display.children.forEach((child) => { //追加箇所　//影の追加
+    child.castShadow = true;
+    child.receiveShadow = true;
+  })
+}
   scene.add(display);
-
   // デスク
+  const desk = new THREE.Mesh(
+    new THREE.PlaneGeometry(10, 6), //空欄箇所
+    new THREE.MeshLambertMaterial({color: 0xb08030}) //空欄箇所
+  );
+  desk.rotation.x = -Math.PI/2; //空欄箇所
+  desk.position.y = -(dpy.H/4 + std.H + std.T/2); //空欄箇所
+  desk.receiveShadow = true; //追加箇所 影の追加
+  scene.add(desk); //追加箇所
 
   // 描画関数の定義
   function render() {
@@ -138,18 +151,18 @@ function init() {
     // WebGL レンダラ
     renderer.render(scene, camera);
     // CSS3D レンダラ
-
+    cssRenderer.render(scene, camera); //追加箇所
     requestAnimationFrame(render);
   }
 
   // サイズ変更
   window.addEventListener("resize", () => {
-
-
-
-
-
-
+    canvasHeight = window.innerHeight-nameHeight;
+    canvasWidth = window.innerWidth;
+    camera.aspect = canvasWidth / canvasHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(canvasWidth, canvasHeight);
+    cssRenderer.setSize(canvasWidth, canvasHeight);
   });
   
   // GUIコントローラ
